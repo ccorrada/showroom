@@ -1,0 +1,763 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ShowRoom</title>
+<style>
+  :root {
+    --bg: #f6f4ef;
+    --surface: #ffffff;
+    --surface-2: #efece5;
+    --text: #1d1b17;
+    --muted: #6b665c;
+    --line: #e2ddd2;
+    --accent: #c2410c;
+    --accent-soft: #fbe6da;
+    --focus: #2563eb;
+    --shadow: 0 1px 2px rgba(29, 27, 23, .06), 0 4px 16px rgba(29, 27, 23, .06);
+    --cover-l: 88%;
+    --cover-c: .06;
+    --cover-ink: 34%;
+    color-scheme: light;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #151412;
+      --surface: #1e1d1a;
+      --surface-2: #282622;
+      --text: #efece5;
+      --muted: #a39d91;
+      --line: #34312c;
+      --accent: #fb923c;
+      --accent-soft: #3a2518;
+      --focus: #60a5fa;
+      --shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 4px 16px rgba(0, 0, 0, .25);
+      --cover-l: 32%;
+      --cover-c: .07;
+      --cover-ink: 82%;
+      color-scheme: dark;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 15px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", sans-serif;
+  }
+  header {
+    position: sticky; top: 0; z-index: 5;
+    background: color-mix(in oklab, var(--bg) 88%, transparent);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid var(--line);
+  }
+  .bar { max-width: 1280px; margin: 0 auto; padding: 14px 24px; display: flex; flex-wrap: wrap; gap: 12px 20px; align-items: center; }
+  h1 { font-size: 19px; margin: 0; letter-spacing: -.01em; }
+  h1 span { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 8px; }
+  .search { flex: 1 1 260px; position: relative; }
+  .search input {
+    width: 100%; padding: 9px 12px 9px 34px; font: inherit; color: inherit;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px; outline: none;
+  }
+  .search input:focus { border-color: var(--focus); box-shadow: 0 0 0 3px color-mix(in oklab, var(--focus) 25%, transparent); }
+  .search svg { position: absolute; left: 11px; top: 50%; translate: 0 -50%; color: var(--muted); }
+  .search kbd { position: absolute; right: 10px; top: 50%; translate: 0 -50%; }
+  kbd { font: 11px ui-monospace, monospace; color: var(--muted); border: 1px solid var(--line); border-radius: 5px; padding: 1px 5px; background: var(--surface-2); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; }
+  .chip {
+    font: inherit; font-size: 13px; color: var(--muted); background: transparent; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 999px; padding: 4px 11px;
+  }
+  .chip b { font-weight: 500; opacity: .7; margin-left: 4px; }
+  .chip[aria-pressed="true"] { background: var(--text); color: var(--bg); border-color: var(--text); }
+  select { font: inherit; font-size: 13px; color: inherit; background: var(--surface); border: 1px solid var(--line); border-radius: 8px; padding: 6px 8px; }
+
+  main { max-width: 1280px; margin: 0 auto; padding: 8px 24px 80px; }
+  section { margin-top: 28px; }
+  h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin: 0 0 12px; font-weight: 600; }
+  h3 { font-size: 14px; margin: 22px 0 10px; color: var(--muted); font-weight: 500; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+
+  .card {
+    position: relative; display: flex; flex-direction: column; background: var(--surface); border: 1px solid var(--line);
+    border-radius: 14px; overflow: hidden; box-shadow: var(--shadow); transition: transform .12s, box-shadow .12s;
+  }
+  .card:hover { transform: translateY(-2px); }
+  .card:focus-within { outline: 2px solid var(--focus); outline-offset: 2px; }
+  .open { all: unset; cursor: pointer; display: flex; flex-direction: column; flex: 1; }
+  .cover {
+    aspect-ratio: 16 / 9; position: relative; display: grid; place-items: center;
+    background: oklch(var(--cover-l) var(--cover-c) var(--h));
+    color: oklch(var(--cover-ink) .09 var(--h));
+  }
+  .cover { overflow: hidden; }
+  .cover img.fit-cover { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+  .cover img.fit-icon {
+    position: absolute; left: 50%; top: 50%; translate: -50% -50%; height: 62%; aspect-ratio: 1; object-fit: contain;
+    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, .18));
+  }
+  .cover img.fit-icon.appicon { border-radius: 22.5%; }
+  .cover img.fit-document {
+    position: absolute; left: 50%; top: 14%; translate: -50% 0; width: 62%; object-fit: contain; object-position: top;
+    border-radius: 3px; box-shadow: 0 6px 20px rgba(0, 0, 0, .22); background: #fff;
+  }
+  .cover:has(img.fit-cover) .kind, .cover:has(img.fit-document) .kind {
+    background: color-mix(in oklab, var(--surface) 85%, transparent); color: var(--text); padding: 1px 6px; border-radius: 5px; opacity: 1;
+  }
+  .initials { font: 600 38px/1 ui-rounded, -apple-system, sans-serif; letter-spacing: -.02em; }
+  .kind { position: absolute; left: 10px; bottom: 8px; font: 11px ui-monospace, monospace; opacity: .8; }
+  .pin { position: absolute; right: 10px; top: 8px; font-size: 12px; }
+  .body { padding: 12px 14px 10px; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+  .name { font-weight: 600; font-size: 15px; overflow: hidden; overflow-wrap: anywhere; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+  .desc {
+    color: var(--muted); font-size: 13px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .desc.auto { font-style: italic; }
+  .desc .ai { color: var(--accent); font-size: 11px; }
+  .meta { margin-top: auto; display: flex; gap: 10px; align-items: center; font-size: 12px; color: var(--muted); padding-top: 4px; }
+  .badge { background: var(--accent-soft); color: var(--accent); border-radius: 6px; padding: 1px 6px; font-weight: 500; }
+  .actions { display: flex; flex-wrap: wrap; gap: 4px; padding: 0 10px 10px; }
+  .actions a, .actions button {
+    font: inherit; font-size: 12px; color: var(--muted); background: var(--surface-2); border: 0; border-radius: 6px;
+    padding: 3px 8px; cursor: pointer; text-decoration: none;
+  }
+  .actions a:hover, .actions button:hover { color: var(--text); }
+  .actions .main { background: var(--accent-soft); color: var(--accent); font-weight: 600; }
+  .actions .main:hover { color: var(--accent); filter: brightness(.97); }
+
+  .tools { position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; opacity: 0; transition: opacity .12s; }
+  .card:hover .tools, .card:focus-within .tools, .tools .on { opacity: 1; }
+  .card:has(.tools .on) .tools { opacity: 1; }
+  @media (hover: none) { .tools { opacity: 1; } }
+  .tools button {
+    width: 28px; height: 28px; border: 0; border-radius: 8px; cursor: pointer; font-size: 15px; line-height: 1;
+    background: color-mix(in oklab, var(--surface) 85%, transparent); color: var(--text); backdrop-filter: blur(6px);
+  }
+  .tools button.on { color: var(--accent); }
+  .ghost { font: inherit; font-size: 13px; color: var(--muted); background: transparent; border: 1px solid var(--line); border-radius: 8px; padding: 6px 10px; cursor: pointer; }
+  .ghost:hover { color: var(--text); }
+  .ghost[disabled] { opacity: .6; cursor: progress; }
+  .chip.hidden-chip { border-style: dashed; }
+
+  dialog {
+    width: min(520px, calc(100vw - 32px)); border: 1px solid var(--line); border-radius: 16px; padding: 0;
+    background: var(--surface); color: var(--text); box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
+  }
+  dialog::backdrop { background: rgba(0, 0, 0, .35); }
+  dialog form { padding: 20px 22px; display: flex; flex-direction: column; gap: 14px; }
+  dialog h2 { text-transform: none; letter-spacing: 0; font-size: 17px; color: var(--text); margin: 0; }
+  dialog .sub { color: var(--muted); font-size: 12px; margin-top: -10px; word-break: break-all; }
+  dialog label { display: flex; flex-direction: column; gap: 5px; font-size: 13px; color: var(--muted); }
+  dialog textarea, dialog input[type=text] {
+    font: inherit; font-size: 14px; color: var(--text); background: var(--bg); border: 1px solid var(--line);
+    border-radius: 8px; padding: 8px 10px; resize: vertical;
+  }
+  dialog textarea:focus, dialog input[type=text]:focus { outline: 2px solid var(--focus); outline-offset: -1px; }
+  dialog .row { flex-direction: row; align-items: center; gap: 8px; color: var(--text); font-size: 14px; }
+  dialog .checks { display: flex; flex-wrap: wrap; gap: 8px 20px; }
+  dialog .hint { font-size: 12px; color: var(--muted); }
+  dialog .link { all: unset; color: var(--accent); cursor: pointer; font-size: 12px; }
+  dialog .link:disabled { opacity: .6; cursor: progress; }
+  .imgbox { display: flex; gap: 12px; align-items: center; border: 1.5px dashed var(--line); border-radius: 10px; padding: 10px; }
+  .imgbox.drag { border-color: var(--accent); background: var(--accent-soft); }
+  .imgbox .thumb { width: 96px; aspect-ratio: 16 / 9; border-radius: 6px; flex: none; display: grid; place-items: center; overflow: hidden; position: relative; }
+  .imgbox .thumb img.fit-cover { width: 100%; height: 100%; object-fit: cover; }
+  .imgbox .thumb img.fit-icon, .imgbox .thumb img.fit-document { position: static; translate: none; height: 80%; width: auto; object-fit: contain; }
+  .imgbox .thumb .initials { font-size: 18px; }
+  .imgbox .txt { font-size: 12px; color: var(--muted); display: flex; flex-direction: column; gap: 4px; }
+  .imgbox .txt b { color: var(--text); font-weight: 500; font-size: 13px; }
+  .imgbox input[type=file] { display: none; }
+  dialog select { font: inherit; font-size: 14px; color: var(--text); background: var(--bg); border: 1px solid var(--line); border-radius: 8px; padding: 7px 8px; }
+  dialog menu button.danger { margin-right: auto; color: #b42318; border-color: color-mix(in oklab, #b42318 40%, var(--line)); }
+  #link-error { color: #b42318; }
+  #link .sub { word-break: normal; }
+  .links-box { display: flex; flex-direction: column; gap: 6px; font-size: 13px; }
+  .links-box .head { display: flex; justify-content: space-between; color: var(--muted); }
+  .links-box .item { display: flex; align-items: center; gap: 8px; background: var(--bg); border-radius: 8px; padding: 6px 8px; }
+  .links-box .item span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .links-box .item small { color: var(--muted); }
+  .links-box:empty { display: none; }
+  dialog menu { display: flex; justify-content: flex-end; gap: 8px; margin: 4px 0 0; padding: 0; }
+  dialog menu button { font: inherit; font-size: 14px; border-radius: 8px; padding: 7px 14px; cursor: pointer; border: 1px solid var(--line); background: transparent; color: var(--text); }
+  dialog menu button[value=save] { background: var(--text); color: var(--bg); border-color: var(--text); }
+
+  details.archive > summary { cursor: pointer; list-style: none; }
+  details.archive > summary::-webkit-details-marker { display: none; }
+  details.archive > summary h2::before { content: "▸ "; }
+  details.archive[open] > summary h2::before { content: "▾ "; }
+  .archive .card { box-shadow: none; }
+  .archive .cover { aspect-ratio: 3 / 1; }
+  .archive .initials { font-size: 24px; }
+  .archive .cover img.fit-icon { height: 72%; }
+  .empty { color: var(--muted); padding: 60px 0; text-align: center; }
+  .setup { max-width: 560px; margin: 48px auto; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 22px 24px; }
+  .setup h2 { text-transform: none; letter-spacing: 0; font-size: 18px; color: var(--text); }
+  .setup pre, .setup code, .notice code { font: 13px ui-monospace, monospace; background: var(--surface-2); border-radius: 6px; padding: 1px 5px; }
+  .setup pre { padding: 10px 12px; overflow-x: auto; }
+  .notice { color: var(--muted); font-size: 13px; margin: 16px 0 0; }
+
+  #toast {
+    position: fixed; left: 50%; bottom: 24px; translate: -50% 20px; opacity: 0; pointer-events: none;
+    background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 10px; font-size: 13px;
+    max-width: min(640px, calc(100vw - 32px)); transition: opacity .15s, translate .15s; box-shadow: var(--shadow);
+  }
+  #toast.show { opacity: 1; translate: -50% 0; }
+  #toast code { font: 12px ui-monospace, monospace; opacity: .75; display: block; margin-top: 4px; word-break: break-all; }
+
+  @media (max-width: 600px) {
+    header { position: static; }
+    .bar, main { padding-left: 16px; padding-right: 16px; }
+    .chips { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -16px; padding: 0 16px; }
+    .chip { flex: none; }
+    .grid { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .search kbd { display: none; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>ShowRoom<span id="stamp"></span></h1>
+    <label class="search">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      <input id="q" type="search" placeholder="Search projects, languages, sessions…" autocomplete="off" aria-label="Search">
+      <kbd>/</kbd>
+    </label>
+    <select id="sort" aria-label="Sort">
+      <option value="recent">Most recent</option>
+      <option value="name">Name A–Z</option>
+    </select>
+    <button id="add-link" class="ghost" hidden title="Add a Claude chat, a Drive document or any link">＋ Link</button>
+    <button id="rescan" class="ghost" hidden title="Look for new and changed projects">↻ Rescan</button>
+    <div class="chips" id="chips" role="toolbar" aria-label="Filter by type"></div>
+  </div>
+</header>
+<main id="main"></main>
+<div id="toast" role="status" aria-live="polite"></div>
+<dialog id="link">
+  <form method="dialog">
+    <h2 id="link-title">New link</h2>
+    <div class="sub">A claude.ai chat or artifact, a Google Drive document, a Figma file… any URL.</div>
+    <label>URL <input type="text" id="link-url" inputmode="url" autocomplete="off" placeholder="https://claude.ai/chat/…" required></label>
+    <span class="hint" id="link-kind"></span>
+    <label>Name <input type="text" id="link-name" maxlength="120" autocomplete="off" placeholder="How you'll recognize it" required></label>
+    <label id="link-desc-row">Description (optional) <textarea id="link-desc" rows="2" maxlength="500"></textarea></label>
+    <label>Show as
+      <select id="link-attach"></select>
+    </label>
+    <span class="hint" id="link-error" role="alert"></span>
+    <menu>
+      <button type="button" id="link-delete" class="danger" hidden>Delete</button>
+      <button value="cancel" formnovalidate>Cancel</button>
+      <button value="save">Save</button>
+    </menu>
+  </form>
+</dialog>
+<dialog id="edit">
+  <form method="dialog">
+    <h2 id="edit-name"></h2>
+    <div class="sub" id="edit-path"></div>
+    <div class="imgbox" id="edit-img">
+      <div class="thumb cover" id="edit-thumb"></div>
+      <div class="txt">
+        <b>Image</b>
+        <span id="edit-img-src"></span>
+        <span>Paste a screenshot (⌘V), drop it here or <button type="button" class="link" id="edit-pick">choose a file</button></span>
+        <button type="button" class="link" id="edit-img-remove" hidden>Remove custom image</button>
+      </div>
+      <input type="file" id="edit-file" accept="image/png,image/jpeg,image/webp,image/gif">
+    </div>
+    <label>Description
+      <textarea id="edit-desc" rows="3" maxlength="500"></textarea>
+      <span class="hint" id="edit-desc-hint"></span>
+    </label>
+    <div class="links-box" id="edit-links"></div>
+    <label>Tags <input type="text" id="edit-tags" placeholder="client, ios, side-project…"></label>
+    <div class="checks">
+      <label class="row"><input type="checkbox" id="edit-pinned"> Pinned</label>
+      <label class="row"><input type="checkbox" id="edit-archived"> Archived</label>
+      <label class="row"><input type="checkbox" id="edit-hidden"> Hidden</label>
+    </div>
+    <menu>
+      <button value="cancel" formnovalidate>Cancel</button>
+      <button value="save">Save</button>
+    </menu>
+  </form>
+</dialog>
+
+<script>
+let CATALOG = /*__CATALOG__*/null;
+// Served by the local server it carries the token; in the static page it is null (commands get copied instead).
+const LIVE = /*__LIVE__*/null;
+const state = { q: '', kind: 'all', sort: 'recent' };
+const $ = (s) => document.querySelector(s);
+
+const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const fold = (s) => String(s ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+const hue = (s) => { let h = 0; for (const c of s) h = (h * 31 + c.codePointAt(0)) % 360; return h; };
+const initials = (name) => {
+  const words = name.replace(/[_\-.]+/g, ' ').replace(/([a-z])([A-Z])/g, '$1 $2').split(/\s+/).filter(Boolean);
+  return (words.length > 1 ? words[0][0] + words[1][0] : name.slice(0, 2)).toUpperCase();
+};
+const rtf = new Intl.RelativeTimeFormat('en', { numeric: 'auto' });
+function ago(iso) {
+  if (!iso) return 'no date';
+  const s = (Date.parse(iso) - Date.now()) / 1000;
+  for (const [unit, secs] of [['year', 31536000], ['month', 2592000], ['week', 604800], ['day', 86400], ['hour', 3600], ['minute', 60]]) {
+    if (Math.abs(s) >= secs) return rtf.format(Math.round(s / secs), unit);
+  }
+  return 'just now';
+}
+
+// Search index: name, description, type, languages, tags and session titles.
+function index(p) {
+  p._search = fold([p.name, p.description, p.kindLabel, p.subLabel, p.url && new URL(p.url).hostname, p.actions.map((a) => a.linkId ? a.label : '').join(' '), p.languages.join(' '), (p.tags || []).join(' '), p.sessions.map((s) => s.title).join(' ')].join(' '));
+  return p;
+}
+function load(catalog) {
+  CATALOG = catalog;
+  CATALOG.projects.forEach(index);
+  const visible = CATALOG.projects.filter((p) => !p.hidden).length;
+  $('#stamp').textContent = `${visible} projects · updated ${ago(CATALOG.generatedAt)}`;
+}
+const withClaude = (p) => p.sessionCount || p.service === 'claude' || p.actions.some((a) => a.detail?.startsWith('Claude'));
+const byId = (id) => CATALOG.projects.find((p) => p.id === id);
+
+function renderChips() {
+  const visible = CATALOG.projects.filter((p) => !p.hidden);
+  const counts = {};
+  for (const p of visible) counts[p.kindLabel] = (counts[p.kindLabel] || 0) + 1;
+  const kinds = Object.entries(counts).sort((a, b) => b[1] - a[1]);
+  const items = [['all', 'All', visible.length], ['claude', 'With Claude', visible.filter(withClaude).length], ...kinds.map(([k, n]) => [k, k, n])];
+  const hidden = CATALOG.projects.length - visible.length;
+  if (hidden) items.push(['hidden', 'Hidden', hidden]);
+  if (!items.some(([v]) => v === state.kind)) state.kind = 'all';
+  $('#chips').innerHTML = items
+    .map(([v, label, n]) => `<button class="chip${v === 'hidden' ? ' hidden-chip' : ''}" data-kind="${esc(v)}" aria-pressed="${state.kind === v}">${esc(label)}<b>${n}</b></button>`)
+    .join('');
+}
+
+function card(p) {
+  const primary = p.actions[0];
+  const desc = !p.description ? '' : `<div class="desc${p.descriptionSource === 'auto' ? ' auto' : ''}" title="Source: ${esc(p.descriptionSource)}">${p.descriptionSource === 'ai' ? '<span class="ai" aria-label="Written by Claude">✦</span> ' : ''}${esc(p.description)}</div>`;
+  const cover = coverInner(p);
+  const buttons = p.actions.map((a, i) => {
+    const cls = i === 0 ? ' class="main"' : '';
+    const tip = esc(a.detail || a.command || a.url || '');
+    return a.url && !(LIVE && a.runnable && !a.url.startsWith('http'))
+      ? `<a${cls} href="${esc(a.url)}" title="${tip}" ${a.url.startsWith('http') ? 'target="_blank" rel="noopener"' : ''}>${esc(a.label)}</a>`
+      : `<button${cls} data-id="${esc(p.id)}" data-action="${i}" title="${tip}">${esc(a.label)}</button>`;
+  }).join('');
+  const tools = LIVE ? `<div class="tools">
+      <button class="${p.pinned ? 'on' : ''}" data-pin="${esc(p.id)}" title="${p.pinned ? 'Unpin' : 'Pin'}" aria-label="${p.pinned ? 'Unpin' : 'Pin'}">${p.pinned ? '★' : '☆'}</button>
+      <button data-edit="${esc(p.id)}" title="Edit" aria-label="Edit ${esc(p.name)}">⋯</button>
+    </div>` : '';
+  return `<article class="card">
+    <button class="open" data-id="${esc(p.id)}" data-action="0" title="${esc(primary.label + (primary.detail ? ': ' + primary.detail : ''))}">
+      <div class="cover" style="--h:${hue(p.name)}">${cover}<span class="kind">${esc(p.subLabel || p.kindLabel)}</span>${p.pinned && !LIVE ? '<span class="pin">★</span>' : ''}</div>
+      <div class="body">
+        <div class="name">${esc(p.name)}</div>
+        ${desc}
+        <div class="meta">
+          <span>${esc(ago(p.lastActivity))}</span>
+          ${p.sessionCount ? `<span class="badge">Claude ${p.sessionCount}</span>` : ''}
+          ${(p.tags || []).slice(0, 2).map((t) => `<span>#${esc(t)}</span>`).join('')}
+        </div>
+      </div>
+    </button>
+    ${tools}
+    <div class="actions">${buttons}</div>
+  </article>`;
+}
+
+function coverInner(p) {
+  if (!p.image) return `<span class="initials">${esc(initials(p.name))}</span>`;
+  const cls = `fit-${p.imageFit}${p.imageSource === 'app icon' ? ' appicon' : ''}`;
+  return `<img class="${cls}" src="${esc(p.image)}" alt="" loading="lazy" title="Image: ${esc(p.imageSource)}">`;
+}
+
+// First run: no project folders configured or found.
+function emptyState() {
+  const st = CATALOG.setup || {};
+  if (st.roots?.length) return `<div class="setup"><h2>No projects yet</h2><p>ShowRoom is looking in ${st.roots.map((r) => `<code>${esc(r)}</code>`).join(', ')}, but found no folders there.</p></div>`;
+  return `<div class="setup">
+    <h2>Welcome to ShowRoom</h2>
+    <p>Tell it where your projects live. Create <code>${esc(st.configFile || '~/.showroom/config.json')}</code> with:</p>
+    <pre>{ "roots": ["~/Projects", "~/Developer"] }</pre>
+    <p>then click <b>↻ Rescan</b> (or restart the server). Every folder directly inside a root becomes a card.</p>
+  </div>`;
+}
+
+function setupNotice() {
+  const missing = CATALOG.setup?.missingRoots || [];
+  return missing.length ? `<p class="notice">Configured folder${missing.length > 1 ? 's' : ''} not found: ${missing.map((r) => `<code>${esc(r)}</code>`).join(', ')}</p>` : '';
+}
+
+const grid = (list) => `<div class="grid">${list.map(card).join('')}</div>`;
+
+function render() {
+  const q = fold(state.q.trim());
+  const wantHidden = state.kind === 'hidden';
+  let list = CATALOG.projects.filter((p) =>
+    (wantHidden ? p.hidden : !p.hidden) &&
+    (state.kind === 'all' || wantHidden || (state.kind === 'claude' ? withClaude(p) : p.kindLabel === state.kind)) &&
+    (!q || q.split(/\s+/).every((t) => p._search.includes(t)))
+  );
+  list = [...list].sort(state.sort === 'name'
+    ? (a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' })
+    : (a, b) => (b.lastActivity || '').localeCompare(a.lastActivity || ''));
+
+  const openArchive = $('details.archive')?.open;
+  if (!list.length) {
+    $('#main').innerHTML = q ? `<p class="empty">Nothing matches “${esc(state.q)}”.</p>`
+      : CATALOG.projects.length ? '<p class="empty">No projects here.</p>' : setupNotice() + emptyState();
+    return;
+  }
+  // When searching (or viewing hidden ones) everything goes in one list: finding is what matters.
+  if (q || wantHidden) {
+    const title = wantHidden ? `Hidden · ${list.length}` : `${list.length} result${list.length > 1 ? 's' : ''}`;
+    $('#main').innerHTML = `<section><h2>${title}</h2>${grid(list)}</section>`;
+    return;
+  }
+  const pinned = list.filter((p) => p.pinned);
+  const active = list.filter((p) => !p.pinned && !p.archived);
+  const archived = list.filter((p) => !p.pinned && p.archived);
+  const groups = {};
+  for (const p of archived) (groups[p.kindLabel] ||= []).push(p);
+
+  let html = '';
+  if (pinned.length) html += `<section><h2>★ Pinned</h2>${grid(pinned)}</section>`;
+  if (active.length) html += `<section><h2>Active · ${active.length}</h2>${grid(active)}</section>`;
+  if (archived.length) {
+    html += `<section><details class="archive" ${openArchive || !(active.length || pinned.length) ? 'open' : ''}>
+      <summary><h2>Archive · ${archived.length}</h2></summary>
+      ${Object.entries(groups).sort((a, b) => b[1].length - a[1].length)
+        .map(([k, ps]) => `<h3>${esc(k)} · ${ps.length}</h3>${grid(ps)}`).join('')}
+    </details></section>`;
+  }
+  $('#main').innerHTML = setupNotice() + html;
+}
+
+const refresh = () => { renderChips(); render(); };
+
+let toastTimer;
+function toast(msg, code, ms = 3200) {
+  const t = $('#toast');
+  t.innerHTML = esc(msg) + (code ? `<code>${esc(code)}</code>` : '');
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+async function copy(text) {
+  try { await navigator.clipboard.writeText(text); return true; } catch {}
+  const ta = Object.assign(document.createElement('textarea'), { value: text });
+  document.body.append(ta); ta.select();
+  const ok = document.execCommand('copy'); ta.remove();
+  return ok;
+}
+
+async function api(pathname, body) {
+  const res = await fetch(pathname, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-ShowRoom-Token': LIVE.token },
+    body: JSON.stringify(body || {}),
+  });
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+  return data;
+}
+
+// With the server, actions really run. Without it: links open directly and commands get copied.
+async function run(p, i) {
+  const action = p.actions[i];
+  if (LIVE && action.runnable) {
+    toast(`${action.label} · ${p.name}…`);
+    try { await api('/api/open', { id: p.id, action: i }); toast(`${action.label} · ${p.name} ✓`); }
+    catch (err) { toast(`Couldn't open it: ${err.message}`, action.command, 6000); }
+    return;
+  }
+  if (action.url) { window.open(action.url, action.url.startsWith('http') ? '_blank' : '_self'); return; }
+  const ok = await copy(action.command);
+  toast(ok ? `${action.label}: command copied, paste it in Terminal` : "Couldn't copy the command", action.command, ok ? 3200 : 8000);
+}
+
+async function curate(id, patch) {
+  try {
+    const { project } = await api('/api/curate', { id, patch });
+    replaceProject(project);
+    return project;
+  } catch (err) {
+    toast(`Couldn't save: ${err.message}`, null, 6000);
+  }
+}
+
+// ---------- editing ----------
+let editing = null;
+function openEditor(p) {
+  editing = p;
+  $('#edit-name').textContent = p.name;
+  $('#edit-path').textContent = p.path || p.url;
+  $('#edit-desc').value = p.description;
+  showDescHint(p);
+  showEditImage(p);
+  showEditLinks(p);
+  $('#edit-tags').value = (p.tags || []).join(', ');
+  $('#edit-pinned').checked = !!p.pinned;
+  $('#edit-archived').checked = !!p.archived;
+  $('#edit-hidden').checked = !!p.hidden;
+  $('#edit').showModal();
+}
+$('#edit').addEventListener('click', (e) => {
+  if (e.target.id === 'edit-restore') { $('#edit-desc').value = ''; $('#edit-desc').focus(); }
+  if (e.target.id === 'edit-pick') $('#edit-file').click();
+  if (e.target.id === 'edit-ai') writeWithAi();
+  const le = e.target.closest('[data-link-edit]');
+  if (le) { const p = editing; $('#edit').close('cancel'); openLinkDialog({ linkId: le.dataset.linkEdit, back: p?.id }); }
+  const ln = e.target.closest('[data-link-new]');
+  if (ln) { const id = ln.dataset.linkNew; $('#edit').close('cancel'); openLinkDialog({ attachTo: id, back: id }); }
+  if (e.target.id === 'edit-img-remove') removeImage();
+});
+
+const SOURCE_LABEL = { auto: 'automatic stack summary', ai: 'written by Claude', manual: 'written by you', link: 'from the link' };
+function showDescHint(p) {
+  const src = SOURCE_LABEL[p.descriptionSource] || p.descriptionSource;
+  const restore = p.autoDescription ? ` <button type="button" class="link" id="edit-restore">Back to automatic</button>` : '';
+  const ai = p.path ? ` <button type="button" class="link" id="edit-ai">✦ Write with AI</button>` : '';
+  $('#edit-desc-hint').innerHTML = `Source: ${esc(src)}.${[restore, ai].filter(Boolean).join(' ·')}`;
+}
+
+async function writeWithAi() {
+  const p = editing;
+  const b = $('#edit-ai');
+  b.disabled = true; b.textContent = '✦ Writing…';
+  try {
+    const { project } = await api('/api/describe', { id: p.id });
+    replaceProject(project);
+    editing = byId(p.id);
+    $('#edit-desc').value = editing.description;
+    showDescHint(editing);
+  } catch (err) {
+    b.disabled = false; b.textContent = '✦ Write with AI';
+    toast(err.message, null, 8000);
+  }
+}
+
+// The project's attached links or, if the card is itself a link, its details.
+function showEditLinks(p) {
+  const box = $('#edit-links');
+  if (p.kind === 'link') {
+    box.innerHTML = `<div class="head"><span>Link · ${esc(p.subLabel)}</span>
+      <button type="button" class="link" data-link-edit="${esc(p.id)}">Edit link</button></div>`;
+    return;
+  }
+  const items = p.actions.filter((a) => a.linkId);
+  box.innerHTML = `<div class="head"><span>Links${items.length ? ` · ${items.length}` : ''}</span>
+      <button type="button" class="link" data-link-new="${esc(p.id)}">＋ Add link</button></div>` +
+    items.map((a) => `<div class="item"><span>${esc(a.label)} <small>${esc(a.detail)}</small></span>
+      <button type="button" class="link" data-link-edit="${esc(a.linkId)}">edit</button></div>`).join('');
+}
+
+function showEditImage(p) {
+  $('#edit-thumb').style.setProperty('--h', hue(p.name));
+  $('#edit-thumb').innerHTML = coverInner(p);
+  $('#edit-img-src').textContent = p.image ? `Now: ${p.imageSource}` : 'No image: initials are shown.';
+  $('#edit-img-remove').hidden = p.imageSource !== 'manual';
+}
+
+function replaceProject(project) {
+  const i = CATALOG.projects.findIndex((p) => p.id === project.id);
+  CATALOG.projects[i] = index(project);
+  load(CATALOG);
+  refresh();
+}
+
+// The image is saved right away (it doesn't wait for "Save").
+async function uploadImage(file) {
+  const p = editing;
+  if (!p || !file) return;
+  if (!/^image\/(png|jpeg|webp|gif)$/.test(file.type)) { toast('Use a PNG, JPG, WebP or GIF image'); return; }
+  if (file.size > 8 * 1024 * 1024) { toast('The image is larger than 8 MB'); return; }
+  $('#edit-img-src').textContent = 'Uploading…';
+  try {
+    const res = await fetch(`/api/image?id=${encodeURIComponent(p.id)}`, {
+      method: 'POST', headers: { 'Content-Type': file.type, 'X-ShowRoom-Token': LIVE.token }, body: file,
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || `Error ${res.status}`);
+    replaceProject(data.project);
+    editing = byId(p.id);
+    showEditImage(editing);
+  } catch (err) {
+    $('#edit-img-src').textContent = `Couldn't upload: ${err.message}`;
+  }
+}
+
+async function removeImage() {
+  const p = editing;
+  const project = await curate(p.id, { imageFile: null });
+  if (project) { editing = byId(p.id); showEditImage(editing); }
+}
+
+$('#edit-file').addEventListener('change', (e) => { uploadImage(e.target.files[0]); e.target.value = ''; });
+const box = $('#edit-img');
+box.addEventListener('dragover', (e) => { e.preventDefault(); box.classList.add('drag'); });
+box.addEventListener('dragleave', () => box.classList.remove('drag'));
+box.addEventListener('drop', (e) => { e.preventDefault(); box.classList.remove('drag'); uploadImage(e.dataTransfer.files[0]); });
+document.addEventListener('paste', (e) => {
+  if (!$('#edit').open) return;
+  const item = [...e.clipboardData.items].find((i) => i.type.startsWith('image/'));
+  if (item) { e.preventDefault(); uploadImage(item.getAsFile()); }
+});
+$('#edit').addEventListener('close', async () => {
+  const p = editing;
+  editing = null;
+  if (!p || $('#edit').returnValue !== 'save') return;
+  const desc = $('#edit-desc').value.trim();
+  const tags = [...new Set($('#edit-tags').value.split(',').map((t) => t.trim()).filter(Boolean))];
+  const patch = {};
+  if (!desc) { if (p.autoDescription) patch.description = null; }
+  else if (desc !== p.description) patch.description = desc;
+  if (tags.join(',') !== (p.tags || []).join(',')) patch.tags = tags;
+  for (const k of ['pinned', 'archived', 'hidden']) {
+    const v = $(`#edit-${k}`).checked;
+    if (v !== !!p[k]) patch[k] = v;
+  }
+  if (!Object.keys(patch).length) return;
+  if (await curate(p.id, patch)) toast(`Saved · ${p.name}`);
+});
+
+// ---------- links ----------
+// The server doesn't send links.json to the browser: a link is rebuilt from the catalog.
+function findLink(linkId) {
+  const card = byId(linkId);
+  if (card?.kind === 'link') return { id: card.id, url: card.url, title: card.name, attachTo: null };
+  for (const p of CATALOG.projects) {
+    const a = p.actions.find((x) => x.linkId === linkId);
+    if (a) return { id: linkId, url: a.url, title: a.label, attachTo: p.id };
+  }
+  return null;
+}
+
+function guessKind(url) {
+  try {
+    const u = new URL(url);
+    if (!/^https?:$/.test(u.protocol)) return 'Only http(s) links are allowed.';
+    const h = u.hostname.replace(/^www\./, '');
+    if (/claude\.(ai|com)$/.test(h)) return u.pathname.startsWith('/project/') ? 'Claude project' : /artifact/.test(u.pathname) ? 'Claude artifact' : 'Claude chat';
+    if (h === 'docs.google.com' || h === 'drive.google.com') return 'Google Drive';
+    if (/figma\.com$/.test(h)) return 'Figma';
+    return h;
+  } catch { return ''; }
+}
+
+let linkCtx = null;
+function openLinkDialog({ linkId = null, attachTo = null, back = null } = {}) {
+  const l = linkId ? findLink(linkId) : null;
+  linkCtx = { id: l?.id || null, back };
+  $('#link-title').textContent = l ? 'Edit link' : 'New link';
+  $('#link-url').value = l?.url || '';
+  $('#link-name').value = l?.title || '';
+  $('#link-desc').value = '';
+  // A link card's description is edited under ⋯ (like any project).
+  $('#link-desc-row').hidden = !!l;
+  const current = l ? l.attachTo : attachTo;
+  const locals = CATALOG.projects.filter((p) => p.kind !== 'link' && p.kind !== 'empty')
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+  $('#link-attach').innerHTML = `<option value="">Its own card</option><optgroup label="A button on project…">` +
+    locals.map((p) => `<option value="${esc(p.id)}" ${p.id === current ? 'selected' : ''}>${esc(p.name)}</option>`).join('') + '</optgroup>';
+  $('#link-delete').hidden = !l;
+  $('#link-error').textContent = '';
+  showKind(l ? l.url : '');
+  $('#link').showModal();
+  (l ? $('#link-name') : $('#link-url')).focus();
+}
+
+async function reopenEditor(id) {
+  const p = id && byId(id);
+  if (p) openEditor(p);
+}
+
+function showKind(url) {
+  const k = guessKind(url);
+  $('#link-kind').textContent = k && !k.startsWith('Only') ? `Type: ${k}` : k;
+}
+$('#link-url').addEventListener('input', (e) => showKind(e.target.value.trim()));
+
+// On error, keep the dialog open so nothing typed is lost.
+$('#link').addEventListener('submit', async (e) => {
+  if (e.submitter?.value !== 'save') return;
+  e.preventDefault();
+  const body = {
+    id: linkCtx.id || undefined,
+    url: $('#link-url').value.trim(),
+    title: $('#link-name').value.trim(),
+    description: $('#link-desc').value.trim(),
+    attachTo: $('#link-attach').value || null,
+  };
+  try {
+    const { catalog } = await api('/api/links', body);
+    load(catalog); refresh();
+    $('#link').close('done');
+    toast(`Link saved · ${body.title}`);
+    reopenEditor(linkCtx.back);
+  } catch (err) {
+    $('#link-error').textContent = err.message;
+  }
+});
+
+$('#link-delete').addEventListener('click', async () => {
+  if (!linkCtx?.id || !confirm('Remove this link from ShowRoom? (Nothing is deleted on claude.ai or Drive.)')) return;
+  try {
+    const { catalog } = await api('/api/links/delete', { id: linkCtx.id });
+    load(catalog); refresh();
+    $('#link').close('done');
+    toast('Link removed');
+    const back = linkCtx.back !== linkCtx.id ? linkCtx.back : null;
+    reopenEditor(back);
+  } catch (err) {
+    $('#link-error').textContent = err.message;
+  }
+});
+
+// ---------- events ----------
+document.addEventListener('click', (e) => {
+  const chip = e.target.closest('.chip');
+  if (chip) { state.kind = chip.dataset.kind; refresh(); return; }
+  const pin = e.target.closest('[data-pin]');
+  if (pin) { const p = byId(pin.dataset.pin); curate(p.id, { pinned: !p.pinned }); return; }
+  const edit = e.target.closest('[data-edit]');
+  if (edit) { openEditor(byId(edit.dataset.edit)); return; }
+  const btn = e.target.closest('[data-action]');
+  if (!btn) return;
+  const p = byId(btn.dataset.id);
+  if (p) run(p, +btn.dataset.action);
+});
+$('#q').addEventListener('input', (e) => { state.q = e.target.value; render(); });
+$('#sort').addEventListener('change', (e) => { state.sort = e.target.value; render(); });
+document.addEventListener('keydown', (e) => {
+  if ($('#edit').open || $('#link').open) return;
+  if (e.key === '/' && document.activeElement !== $('#q')) { e.preventDefault(); $('#q').focus(); }
+  if (e.key === 'Escape' && document.activeElement === $('#q')) { $('#q').value = ''; state.q = ''; render(); }
+  if (e.key === 'Enter' && document.activeElement === $('#q')) { document.querySelector('.open')?.click(); }
+});
+
+if (LIVE) {
+  $('#add-link').hidden = false;
+  $('#add-link').addEventListener('click', () => openLinkDialog());
+  const b = $('#rescan');
+  b.hidden = false;
+  b.addEventListener('click', async () => {
+    b.disabled = true; b.textContent = '↻ Scanning…';
+    try { load(await api('/api/rescan')); refresh(); toast('Catalog updated'); }
+    catch (err) { toast(`Couldn't rescan: ${err.message}`, null, 6000); }
+    b.disabled = false; b.textContent = '↻ Rescan';
+  });
+}
+
+load(CATALOG);
+refresh();
+</script>
+</body>
+</html>

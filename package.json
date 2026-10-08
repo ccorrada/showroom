@@ -1,0 +1,35 @@
+{
+  "name": "showroom",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A local showcase of all your projects: a picture, a one-line description and one click to get back to work.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20.12"
+  },
+  "os": [
+    "darwin"
+  ],
+  "keywords": [
+    "projects",
+    "dashboard",
+    "launcher",
+    "macos",
+    "claude-code",
+    "xcode",
+    "portfolio"
+  ],
+  "scripts": {
+    "start": "node src/server.mjs",
+    "build": "node src/build.mjs",
+    "open": "node src/build.mjs && open \"${SHOWROOM_HOME:-$HOME/.showroom}/index.html\"",
+    "describe": "node src/describe.mjs",
+    "agent:install": "node src/agent.mjs install",
+    "agent:uninstall": "node src/agent.mjs uninstall",
+    "agent:status": "node src/agent.mjs status",
+    "agent:restart": "node src/agent.mjs restart",
+    "test": "node --test test/",
+    "demo": "node scripts/demo.mjs"
+  }
+}
