@@ -4,6 +4,7 @@
   "private": true,
   "description": "A local showcase of all your projects: a picture, a one-line description and one click to get back to work.",
   "license": "MIT",
+  "author": "caocorrada (https://caocorrada.com)",
   "type": "module",
   "engines": {
     "node": ">=20.12"

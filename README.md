@@ -165,7 +165,7 @@ See [ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit together.
 
 ## License
 
-[MIT](LICENSE).
+[MIT](LICENSE). Made by [caocorrada](https://caocorrada.com).
 
 ShowRoom is an independent project. It is not affiliated with or endorsed by Anthropic; "Claude" and "Claude Code"
 are referenced only to describe the integration.
