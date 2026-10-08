@@ -14,11 +14,16 @@ const PROJECT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 const LOG = path.join(CONFIG.outDir, 'server.log');
 const DOMAIN = `gui/${process.getuid()}`;
 
+// Homebrew's process.execPath points into a versioned Cellar folder that `brew upgrade node` deletes;
+// prefer a stable symlink to the same binary when there is one.
+const real = (p) => { try { return fs.realpathSync(p); } catch { return null; } };
+const NODE = ['/opt/homebrew/bin/node', '/usr/local/bin/node'].find((p) => real(p) === real(process.execPath)) || process.execPath;
+
 const xml = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
 function plist() {
   // Explicit PATH: launchd doesn't load the shell profile (git, claude, sips, qlmanage).
-  const pathVar = [path.join(HOME, '.local', 'bin'), path.dirname(process.execPath), '/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin']
+  const pathVar = [path.join(HOME, '.local', 'bin'), path.dirname(NODE), '/opt/homebrew/bin', '/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin']
     .filter((v, i, a) => a.indexOf(v) === i).join(':');
   return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
@@ -27,7 +32,7 @@ function plist() {
   <key>Label</key><string>${LABEL}</string>
   <key>ProgramArguments</key>
   <array>
-    <string>${xml(process.execPath)}</string>
+    <string>${xml(NODE)}</string>
     <string>${xml(path.join(PROJECT, 'src', 'server.mjs'))}</string>
   </array>
   <key>WorkingDirectory</key><string>${xml(PROJECT)}</string>
@@ -49,8 +54,23 @@ function plist() {
 
 const launchctl = (...args) => execFileSync('launchctl', args, { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
 
+const loaded = () => { try { launchctl('print', `${DOMAIN}/${LABEL}`); return true; } catch { return false; } };
+const pause = (ms) => Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
+
+// `bootout` returns before the job is gone; bootstrapping it again too soon fails with "5: Input/output error".
 function unload() {
-  try { launchctl('bootout', `${DOMAIN}/${LABEL}`); return true; } catch { return false; }
+  try { launchctl('bootout', `${DOMAIN}/${LABEL}`); } catch { return false; }
+  for (let i = 0; i < 50 && loaded(); i++) pause(100);
+  return true;
+}
+
+function load() {
+  for (let attempt = 1; ; attempt++) {
+    try { return launchctl('bootstrap', DOMAIN, PLIST); } catch (err) {
+      if (attempt >= 5) throw err;
+      pause(500);
+    }
+  }
 }
 
 function status() {
@@ -70,7 +90,7 @@ if (cmd === 'install') {
   fs.mkdirSync(CONFIG.outDir, { recursive: true });
   unload();
   fs.writeFileSync(PLIST, plist());
-  launchctl('bootstrap', DOMAIN, PLIST);
+  load();
   console.log(`Installed: ${PLIST}`);
   console.log(`ShowRoom will start at login → http://localhost:${CONFIG.port}`);
   console.log(`Log: ${LOG}`);

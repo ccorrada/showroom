@@ -45,31 +45,38 @@ VS Code opens the folder.
 
 ## Quick start
 
+Install it (or update it) with one command:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/ccorrada/showroom/main/install.sh | bash
+```
+
+It checks for Node.js and git, clones ShowRoom into `~/.showroom/app`, sets it to start at login (a LaunchAgent,
+`local.showroom`) and opens **http://localhost:4747** — bookmark it. You can read [install.sh](install.sh) first; it's short.
+
+ShowRoom looks for common project folders (`~/Projects`, `~/Developer`, `~/Code`, `~/dev`, `~/src`, `~/repos`,
+`~/GitHub`…). To choose your own, create `~/.showroom/config.json`:
+
+```json
+{ "roots": ["~/Projects"] }
+```
+
+then click **↻ Rescan**.
+
+To uninstall: `node ~/.showroom/app/src/agent.mjs uninstall && rm -rf ~/.showroom/app` (add `rm -rf ~/.showroom` to
+also delete your edits, links and images).
+
+### Try it first, or install by hand
+
 ```bash
 git clone https://github.com/ccorrada/showroom.git
 cd showroom
-npm run demo            # try it with fictional projects → http://localhost:4848
+npm run demo            # fictional projects → http://localhost:4848
+npm start               # your projects → http://localhost:4747
+npm run agent:install   # start at login
 ```
 
-Then point it at your own projects:
-
-```bash
-mkdir -p ~/.showroom
-echo '{ "roots": ["~/Projects"] }' > ~/.showroom/config.json
-npm start               # → http://localhost:4747
-```
-
-If you don't create a config, ShowRoom looks for common folders (`~/Projects`, `~/Developer`, `~/Code`, `~/dev`,
-`~/src`, `~/repos`, `~/GitHub`…) and uses the ones that exist.
-
-To have it start automatically when you log in:
-
-```bash
-npm run agent:install   # installs a LaunchAgent (local.showroom)
-```
-
-Then bookmark **http://localhost:4747**. Other commands: `npm run agent:status`, `npm run agent:restart` (after
-updating the code) and `npm run agent:uninstall`.
+Other commands: `npm run agent:status`, `npm run agent:restart` (after updating the code) and `npm run agent:uninstall`.
 
 ## Configuration
 
