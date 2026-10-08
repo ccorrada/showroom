@@ -11,11 +11,11 @@ turns each one into a card. Click the card and you're back where you left off: t
 VS Code opens the folder.
 
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="docs/screenshot-dark.png">
-  <img alt="ShowRoom showing project cards with app icons, screenshots and descriptions" src="docs/screenshot-light.png">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/demo-dark.gif">
+  <img alt="Searching ShowRoom for “swift”, then clicking a card to reopen its Claude session" src="docs/demo-light.gif">
 </picture>
 
-<sub>Screenshot from the built-in demo (`npm run demo`); all projects in it are fictional.</sub>
+<sub>Recorded from the built-in demo (`npm run demo`); all projects in it are fictional.</sub>
 
 ## Features
 
@@ -151,6 +151,7 @@ Found a problem? Please open an issue (or a private security advisory on GitHub 
 npm test                # node --test, no dependencies (thumbnail tests need macOS)
 npm run demo            # fictional projects on port 4848
 npm run build           # one-off scan → ~/.showroom/catalog.json + index.html
+node scripts/record-demo.mjs [light|dark]   # re-record the README GIF (demo running; needs Chrome + ffmpeg)
 ```
 
 See [ARCHITECTURE.md](ARCHITECTURE.md) for how the pieces fit together.
