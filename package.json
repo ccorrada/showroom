@@ -29,7 +29,7 @@
     "agent:uninstall": "node src/agent.mjs uninstall",
     "agent:status": "node src/agent.mjs status",
     "agent:restart": "node src/agent.mjs restart",
-    "test": "node --test test/",
+    "test": "node --test test/*.test.mjs",
     "demo": "node scripts/demo.mjs"
   }
 }
